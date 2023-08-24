@@ -41,6 +41,8 @@ import sun.reflect.Reflection;
  * @author  unascribed
  * @see     java.lang.Runtime#getRuntime()
  * @since   JDK1.0
+ *
+ * JVM 上下文环境接口，这是唯一的
  */
 
 public class Runtime {
@@ -100,6 +102,8 @@ public class Runtime {
      * @see #removeShutdownHook
      * @see #runFinalizersOnExit
      * @see #halt(int)
+     *
+     * Shutdown.exit(status);
      */
     public void exit(int status) {
         SecurityManager security = System.getSecurityManager();
@@ -202,6 +206,8 @@ public class Runtime {
      * @see #halt(int)
      * @see #exit(int)
      * @since 1.3
+     *
+     * JVM 关闭时的钩子方法
      */
     public void addShutdownHook(Thread hook) {
         SecurityManager sm = System.getSecurityManager();

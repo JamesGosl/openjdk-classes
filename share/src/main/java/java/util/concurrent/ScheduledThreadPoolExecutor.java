@@ -117,6 +117,8 @@ import java.util.*;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * ScheduledThreadPoolExecutor 是ScheduledExecutorService 延时和周期性任务的具体实现
  */
 public class ScheduledThreadPoolExecutor
         extends ThreadPoolExecutor

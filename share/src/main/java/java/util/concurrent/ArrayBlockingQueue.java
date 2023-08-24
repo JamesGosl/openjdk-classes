@@ -78,6 +78,8 @@ import java.util.Spliterator;
  * @since 1.5
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
+ *
+ * ArrayBlockingQueue 是一个数组实现的有界阻塞队列（有界队列），队列中的元素按FIFO 排序。
  */
 public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         implements BlockingQueue<E>, java.io.Serializable {

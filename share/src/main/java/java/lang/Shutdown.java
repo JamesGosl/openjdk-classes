@@ -133,6 +133,8 @@ class Shutdown {
     /* The halt method is synchronized on the halt lock
      * to avoid corruption of the delete-on-shutdown file list.
      * It invokes the true native halt method.
+     *
+     * 关闭JVM
      */
     static void halt(int status) {
         synchronized (haltLock) {
@@ -156,6 +158,8 @@ class Shutdown {
      * if on-exit finalizers are enabled they're run iff the shutdown is
      * initiated by an exit(0); they're never run on exit(n) for n != 0 or in
      * response to SIGINT, SIGTERM, etc.
+     *
+     * 关闭JVM 之前的钩子方法
      */
     private static void sequence() {
         synchronized (lock) {
@@ -177,6 +181,8 @@ class Shutdown {
     /* Invoked by Runtime.exit, which does all the security checks.
      * Also invoked by handlers for system-provided termination events,
      * which should pass a nonzero status code.
+     *
+     * 关闭JVM
      */
     static void exit(int status) {
         boolean runMoreFinalizers = false;
@@ -205,6 +211,7 @@ class Shutdown {
             runAllFinalizers();
             halt(status);
         }
+        // 先执行钩子方法，再关闭JVM
         synchronized (Shutdown.class) {
             /* Synchronize on the class object, causing any other thread
              * that attempts to initiate shutdown to stall indefinitely

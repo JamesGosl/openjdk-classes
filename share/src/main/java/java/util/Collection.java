@@ -139,6 +139,8 @@ import java.util.stream.StreamSupport;
  * @see     Arrays
  * @see     AbstractCollection
  * @since 1.2
+ *
+ * 集合接口
  */
 
 public interface Collection<E> extends Iterable<E> {

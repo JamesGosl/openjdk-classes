@@ -34,6 +34,8 @@
  */
 
 package java.util.concurrent;
+import com.sun.istack.internal.NotNull;
+
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -315,6 +317,22 @@ import java.util.*;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * Java 线程的创建非常昂贵，需要JVM 和OS 配合完成大量的工作：
+ * （1）必须为线程堆栈分配和初始化大量内存块，其中包括至少1MB 的栈内存。
+ * （2）需要进行系统调用，以便在OS 中创建和注册本地线程。（上下文切换）
+ *
+ * Java 高并发应用频繁创建和销毁线程的操作将是非常低效的，而且是不被编程规范所允许的。这就必须要使用到线程池。线程池主要解决了下面两个问题：
+ * （1）提升性能：线程池能独立负责线程的创建、维护和分配。在执行大量异步任务时，可以不需要自己创建线程，而是将任务交给线程池去调度。线程池能尽可能使用
+ * 空闲的线程去执行异步任务，最大限度地对已经创建的线程进行复用，使得性能提升明显。
+ * （2）线程管理：每个Java 线程池都会保持一些基本的线程统计信息，例如完成的任务数量、空闲时间等，以便对线程进行有效管理，使得能对所接收到的异步任务
+ * 进行高效调度。
+ *
+ * 在多线程编程中，任务都是一些抽象且离散的工作单元，而线程是使任务异步执行的基本机制。随着应用的扩张，线程和任务管理也变得非常复杂，为了简化这些复杂
+ * 的线程管理模式，我们需要一个管理者来统一管理线程及任务分配，这就是线程池。
+ *
+ * ThreadPoolExecutor 就是大名鼎鼎的线程池实现类，是JUC 线程池的核心类。线程的创建和终止需要很大的开销，线程池中预先提供了指定数量的可重用线程，
+ * 所以使用线程池会节省系统资源，并且每个线程池都维护了一些基础的数据统计，方便线程的管理和监控
  */
 public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
@@ -373,20 +391,30 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * we can only terminate if, after seeing that it is empty, we see
      * that workerCount is 0 (which sometimes entails a recheck -- see
      * below).
+     *
+     * 用这个参数来表示线程池的五种状态
+     * 主要还是为了性能考虑，CAS 肯定要比Lock 快
      */
     private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
     private static final int COUNT_BITS = Integer.SIZE - 3;
+    // 最大线程数量
     private static final int CAPACITY   = (1 << COUNT_BITS) - 1;
 
     // runState is stored in the high-order bits
+    // 111 运行状态，能接受任务，能执行阻塞任务
     private static final int RUNNING    = -1 << COUNT_BITS;
+    // 000 关闭状态，不接受任务，执行正在执行的任务，执行阻塞任务
     private static final int SHUTDOWN   =  0 << COUNT_BITS;
+    // 001 打断状态，不接受任务，打断正在执行的任务，丢弃阻塞任务
     private static final int STOP       =  1 << COUNT_BITS;
+    // 010 中间状态，任务全部执行完毕，活动线程也没了
     private static final int TIDYING    =  2 << COUNT_BITS;
+    // 011 终结状态，线程池结束
     private static final int TERMINATED =  3 << COUNT_BITS;
 
     // Packing and unpacking ctl
     private static int runStateOf(int c)     { return c & ~CAPACITY; }
+    // 计算工作线程/核心线程数量
     private static int workerCountOf(int c)  { return c & CAPACITY; }
     private static int ctlOf(int rs, int wc) { return rs | wc; }
 
@@ -461,6 +489,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Set containing all worker threads in pool. Accessed only when
      * holding mainLock.
+     *
+     * 工作线程/核心线程
      */
     private final HashSet<Worker> workers = new HashSet<Worker>();
 
@@ -472,6 +502,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Tracks largest attained pool size. Accessed only under
      * mainLock.
+     *
+     * 跟踪线程数
      */
     private int largestPoolSize;
 
@@ -599,7 +631,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         final Thread thread;
         /** Initial task to run.  Possibly null. */
         Runnable firstTask;
-        /** Per-thread task counter */
+        /** Per-thread task counter
+         * 处理的任务数 */
         volatile long completedTasks;
 
         /**
@@ -703,6 +736,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             try {
                 if (ctl.compareAndSet(c, ctlOf(TIDYING, 0))) {
                     try {
+                        // 终止后的钩子方法
                         terminated();
                     } finally {
                         ctl.set(ctlOf(TERMINATED, 0));
@@ -827,6 +861,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Performs any further cleanup following run state transition on
      * invocation of shutdown.  A no-op here, but used by
      * ScheduledThreadPoolExecutor to cancel delayed tasks.
+     *
+     * 钩子方法 但只允许本包内继承
      */
     void onShutdown() {
     }
@@ -892,12 +928,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * @return true if successful
      */
     private boolean addWorker(Runnable firstTask, boolean core) {
-        retry:
-        for (;;) {
+        // 是否需要增加线程
+        retry:for (;;) {
             int c = ctl.get();
             int rs = runStateOf(c);
 
             // Check if queue empty only if necessary.
+            // shutdown()
             if (rs >= SHUTDOWN &&
                 ! (rs == SHUTDOWN &&
                    firstTask == null &&
@@ -906,11 +943,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
             for (;;) {
                 int wc = workerCountOf(c);
+                // 是否需要增加线程数 (核心线程数，最大线程数)
                 if (wc >= CAPACITY ||
                     wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
+
+                // CAS 操作
                 if (compareAndIncrementWorkerCount(c))
                     break retry;
+
+                // 如果发生多线程操作 那么返回上层循环重试
                 c = ctl.get();  // Re-read ctl
                 if (runStateOf(c) != rs)
                     continue retry;
@@ -946,6 +988,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 } finally {
                     mainLock.unlock();
                 }
+
+                // 启动工作线程/核心线程
+                // 1. 这里乜有选择在同步块中启动线程，是因为Thread.start() 非常耗时
+                // 2. 同时Thread.start() 会导致上下文切换，为了保证Lock 锁的速度，选择在锁外启动
                 if (workerAdded) {
                     t.start();
                     workerStarted = true;
@@ -1062,6 +1108,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
 
             try {
+                // 超时策略
+                // 1. 空闲线程，存在超时
+                // 2. 核心线程，进行阻塞
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                     workQueue.take();
@@ -1124,21 +1173,28 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
+            // 执行任务
+            // 1. 核心线程任务
+            // 2. 阻塞队列任务
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
                 // if not, ensure thread is not interrupted.  This
                 // requires a recheck in second case to deal with
                 // shutdownNow race while clearing interrupt
+                // 处理shutdownNow()
                 if ((runStateAtLeast(ctl.get(), STOP) ||
                      (Thread.interrupted() &&
                       runStateAtLeast(ctl.get(), STOP))) &&
                     !wt.isInterrupted())
                     wt.interrupt();
+
                 try {
+                    // 前置
                     beforeExecute(wt, task);
                     Throwable thrown = null;
                     try {
+                        // 执行任务
                         task.run();
                     } catch (RuntimeException x) {
                         thrown = x; throw x;
@@ -1147,6 +1203,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     } catch (Throwable x) {
                         thrown = x; throw new Error(x);
                     } finally {
+                        // 后置
                         afterExecute(task, thrown);
                     }
                 } finally {
@@ -1292,14 +1349,28 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *         {@code maximumPoolSize < corePoolSize}
      * @throws NullPointerException if {@code workQueue}
      *         or {@code threadFactory} or {@code handler} is null
+     *
+     *
+     * I/O 密集型任务：主要是执行I/O 操作。由于执行I/O 操作的时间较长，导致CPU 的利用率不高，这类任务CPU 常处于空闲状态
+     * 由于I/O 密集型任务的CPU 使用率较低，导致线程空余时间很多，因此通常需要开CPU 核心数两倍的线程。当I/O 线程空闲时，空余启用其他线程继续使用
+     * CPU，以提高CPU 的使用率。
+     *
+     * CPU 密集型任务：主要是执行计算任务。由于响应时间很快，CPU 一直在运行，这种任务CPU 的利用率很高，所以少线程
+     * CPU 密集型任务也叫计算密集型任务，其特点是进行大量计算而需要消耗CPU 资源，比如计算圆周率、对视频进行高清解码等。CPU 密集型任务虽然也可以
+     * 并行完成，但是并行的任务越多，花在任务切换的时间就越多，CPU 执行任务的效率就越低，所以要最高效地利用CPU，CPU 密集型任务并行执行的数量应当
+     * 等于CPU 的核心数。
+     *
+     * 混合型任务：既要执行计算任务，又要进行I/O 操作。相对来说由于执行I/O 炒作的耗时较长，这类任务的CPU 利用率也不是太高。
+     * 最佳线程数 = (线程等待时间 + 线程CPU 时间) / 线程CPU 时间 * CPU 核心数
+     * 最佳线程数 = ((线程等待时间 / 线程CPU 时间) + 1) * CPU 核心数
      */
-    public ThreadPoolExecutor(int corePoolSize,
-                              int maximumPoolSize,
-                              long keepAliveTime,
-                              TimeUnit unit,
-                              BlockingQueue<Runnable> workQueue,
-                              ThreadFactory threadFactory,
-                              RejectedExecutionHandler handler) {
+    public ThreadPoolExecutor(int corePoolSize, //核心线程数
+                              int maximumPoolSize, //最大线程数
+                              long keepAliveTime,  TimeUnit unit, //空闲时长
+                              BlockingQueue<Runnable> workQueue, //任务的排队队列
+                              ThreadFactory threadFactory, //线程工厂
+                              RejectedExecutionHandler handler //拒绝策略
+    ) {
         if (corePoolSize < 0 ||
             maximumPoolSize <= 0 ||
             maximumPoolSize < corePoolSize ||
@@ -1352,12 +1423,21 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * thread.  If it fails, we know we are shut down or saturated
          * and so reject the task.
          */
+        // 线程任务四步曲
+        // 1. 如果线程数量小于核心线程数，那么该任务将以核心线程创建
+        // 2. 如果线程数量大于核心线程数，那么该任务放入阻塞队列等待
+        // 3. 如果阻塞队列满了，那么采用空闲线程来执行
+        // 4. 如果上面都失败了，则采用拒绝策略解决问题
         int c = ctl.get();
+
+        // 使用核心线程
         if (workerCountOf(c) < corePoolSize) {
             if (addWorker(command, true))
                 return;
             c = ctl.get();
         }
+
+        // 使用阻塞队列
         if (isRunning(c) && workQueue.offer(command)) {
             int recheck = ctl.get();
             if (! isRunning(recheck) && remove(command))
@@ -1365,7 +1445,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
+
+        // 使用空闲线程
         else if (!addWorker(command, false))
+            // 使用拒绝策略
             reject(command);
     }
 
@@ -1379,14 +1462,23 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * to do that.
      *
      * @throws SecurityException {@inheritDoc}
+     *
+     * 此方法会等待当前工作队列中的剩余任务全部执行完毕之后才会执行关闭，但是此方法被调用之后线程池的状态变为SHUTDOWN，线程池不会再接收新的任务。
+     *
+     * 可以使用JVM 关闭时的钩子方法来优雅的关闭线程池
+     * Runtime.getRuntime().addShutdownHook(new Thread(() -> {}));
      */
     public void shutdown() {
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
+            // 检查权限
             checkShutdownAccess();
+            // 设置线程池状态
             advanceRunState(SHUTDOWN);
+            // 中断空闲线程
             interruptIdleWorkers();
+            // 钩子函数
             onShutdown(); // hook for ScheduledThreadPoolExecutor
         } finally {
             mainLock.unlock();
@@ -1410,15 +1502,21 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * fails to respond to interrupts may never terminate.
      *
      * @throws SecurityException {@inheritDoc}
+     *
+     * 立即关闭线程池的方法，此方法会打断正在执行的工作线程，并且会清空当前工作队列中的剩余任务，返回的是尚未执行的任务。
      */
     public List<Runnable> shutdownNow() {
         List<Runnable> tasks;
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
+            // 检查权限
             checkShutdownAccess();
+            // 设置线程池状态
             advanceRunState(STOP);
+            // 中断所有线程
             interruptWorkers();
+            // 丢弃工作队列中剩余任务
             tasks = drainQueue();
         } finally {
             mainLock.unlock();
@@ -1451,6 +1549,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         return runStateAtLeast(ctl.get(), TERMINATED);
     }
 
+    /**
+     * 等待线程池关闭，可以像下面那样使用
+     *
+     * while (!awaitTermination(60, TimeUnit.SECONDS)) {}
+     */
     public boolean awaitTermination(long timeout, TimeUnit unit)
         throws InterruptedException {
         long nanos = unit.toNanos(timeout);
@@ -1937,6 +2040,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *
      * @param t the thread that will run task {@code r}
      * @param r the task that will be executed
+     *
+     * 任务执行前的钩子方法
      */
     protected void beforeExecute(Thread t, Runnable r) { }
 
@@ -1985,6 +2090,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * @param r the runnable that has completed
      * @param t the exception that caused termination, or null if
      * execution completed normally
+     *
+     * 任务执行之后的钩子方法
      */
     protected void afterExecute(Runnable r, Throwable t) { }
 
@@ -1993,6 +2100,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * implementation does nothing. Note: To properly nest multiple
      * overridings, subclasses should generally invoke
      * {@code super.terminated} within this method.
+     *
+     * 线程池终止时的钩子方法
      */
     protected void terminated() { }
 
@@ -2016,6 +2125,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          *
          * @param r the runnable task requested to be executed
          * @param e the executor attempting to execute this task
+         *
+         * 调用者执行策略。在新任务被添加到线程池时，如果添加失败，那么提交任务线程会自己去执行该任务，不会使用线程池中的线程去执行新任务。
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
             if (!e.isShutdown()) {
@@ -2040,6 +2151,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param r the runnable task requested to be executed
          * @param e the executor attempting to execute this task
          * @throws RejectedExecutionException always
+         *
+         * 使用该策略时，如果线程队列满了，新任务就会被拒绝，并抛出RejectedExecutionException 异常。该策略是线程池的默认的拒绝策略。
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
             throw new RejectedExecutionException("Task " + r.toString() +
@@ -2063,6 +2176,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          *
          * @param r the runnable task requested to be executed
          * @param e the executor attempting to execute this task
+         *
+         * 该策略是AbortPolicy 的安静版本，如果线程池队列满了，新任务就会直接被丢掉，并且不会有任何异常抛出。
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
         }
@@ -2087,6 +2202,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          *
          * @param r the runnable task requested to be executed
          * @param e the executor attempting to execute this task
+         *
+         * 抛弃最老任务策略，队列满了，就会将最早进入队列的任务抛弃，从队列中腾出空间，再尝试加入队列，因为队列是队尾进队头出，队头元素是最老的，所以
+         *          每次都是移除对头元素后再尝试入队。
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
             if (!e.isShutdown()) {

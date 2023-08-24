@@ -76,6 +76,9 @@ import java.util.function.Consumer;
  * @since 1.5
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
+ *
+ * LinkedBlockingQueue 是一个基于链表实现的阻塞队列，按FIFO 排列任务，可以设置容量（有界队列），不设置容量则默认使用Integer.MAX_VALUE 作为
+ *           容量（无界队列）。
  */
 public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         implements BlockingQueue<E>, java.io.Serializable {

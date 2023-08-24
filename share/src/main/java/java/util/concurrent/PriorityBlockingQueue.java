@@ -104,6 +104,8 @@ import java.util.function.Consumer;
  * @since 1.5
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
+ *
+ * PriorityBlockingQueue 是具有优先级的无界队列
  */
 @SuppressWarnings("unchecked")
 public class PriorityBlockingQueue<E> extends AbstractQueue<E>

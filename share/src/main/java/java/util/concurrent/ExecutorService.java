@@ -133,6 +133,8 @@ import java.util.Collection;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * ExecutorService 继承于Executor。它是Java 异步目标任务的 “执行者” 服务接口，堆外提供异步任务的接受服务。
  */
 public interface ExecutorService extends Executor {
 
@@ -232,6 +234,8 @@ public interface ExecutorService extends Executor {
      * @throws RejectedExecutionException if the task cannot be
      *         scheduled for execution
      * @throws NullPointerException if the task is null
+     *
+     * Future execute
      */
     <T> Future<T> submit(Callable<T> task);
 
@@ -247,6 +251,8 @@ public interface ExecutorService extends Executor {
      * @throws RejectedExecutionException if the task cannot be
      *         scheduled for execution
      * @throws NullPointerException if the task is null
+     *
+     * Future execute
      */
     <T> Future<T> submit(Runnable task, T result);
 

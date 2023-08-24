@@ -39,6 +39,7 @@ class ApplicationShutdownHooks {
     private static IdentityHashMap<Thread, Thread> hooks;
     static {
         try {
+            // 添加钩子方法
             Shutdown.add(1 /* shutdown hook invocation order */,
                 false /* not registered if shutdown in progress */,
                 new Runnable() {
@@ -90,6 +91,8 @@ class ApplicationShutdownHooks {
     /* Iterates over all application hooks creating a new thread for each
      * to run in. Hooks are run concurrently and this method waits for
      * them to finish.
+     *
+     * 运行钩子方法
      */
     static void runHooks() {
         Collection<Thread> threads;

@@ -70,6 +70,9 @@ import java.util.function.Supplier;
  *
  * @author  Josh Bloch and Doug Lea
  * @since   1.2
+ *
+ * 在Java 的多线程并发执行过程中，为了保证多个线程对变量的安全访问，可以将变量放到ThreadLocal 类型的对象职工，使变量在每个线程中都有独立值，不会
+ * 出现一个线程读取变量时而被另一个线程修改的现象。ThreadLocal 类通常被翻译为“线程本地变量” 或者 “线程局部变量” 类。
  */
 public class ThreadLocal<T> {
     /**
@@ -81,6 +84,8 @@ public class ThreadLocal<T> {
      * in the common case where consecutively constructed ThreadLocals
      * are used by the same threads, while remaining well-behaved in
      * less common cases.
+     *
+     * 保证不重复
      */
     private final int threadLocalHashCode = nextHashCode();
 
@@ -122,6 +127,8 @@ public class ThreadLocal<T> {
      * anonymous inner class will be used.
      *
      * @return the initial value for this thread-local
+     *
+     * 初始化方法
      */
     protected T initialValue() {
         return null;
@@ -159,6 +166,7 @@ public class ThreadLocal<T> {
     public T get() {
         Thread t = Thread.currentThread();
         ThreadLocalMap map = getMap(t);
+        // 已经初始化
         if (map != null) {
             ThreadLocalMap.Entry e = map.getEntry(this);
             if (e != null) {
@@ -167,6 +175,7 @@ public class ThreadLocal<T> {
                 return result;
             }
         }
+        // 还未初始化
         return setInitialValue();
     }
 
@@ -304,6 +313,9 @@ public class ThreadLocal<T> {
          * == null) mean that the key is no longer referenced, so the
          * entry can be expunged from table.  Such entries are referred to
          * as "stale entries" in the code that follows.
+         *
+         * 为什么会发生内存泄露，这就是关键。因为传入WeakReference 弱引用的是ThreadLocal 这就会造成，如果ThreadLocal 被置空，那么WeakReference
+         * 搞的是ThreadLocal，不会对value 有操作，这就会存在问题value 还一直在，且无法被回收。
          */
         static class Entry extends WeakReference<ThreadLocal<?>> {
             /** The value associated with this ThreadLocal. */
@@ -413,8 +425,10 @@ public class ThreadLocal<T> {
         private Entry getEntry(ThreadLocal<?> key) {
             int i = key.threadLocalHashCode & (table.length - 1);
             Entry e = table[i];
+            // 没有发生hash 冲突
             if (e != null && e.get() == key)
                 return e;
+            // 发生了hash 冲突
             else
                 return getEntryAfterMiss(key, i, e);
         }
@@ -432,6 +446,7 @@ public class ThreadLocal<T> {
             Entry[] tab = table;
             int len = tab.length;
 
+            // 向后迭代匹配Key
             while (e != null) {
                 ThreadLocal<?> k = e.get();
                 if (k == key)

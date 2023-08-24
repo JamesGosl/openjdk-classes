@@ -41,6 +41,8 @@ import java.util.function.Consumer;
  *
  * @since 1.5
  * @jls 14.14.2 The enhanced for statement
+ *
+ * 迭代器，通过实现此接口可以拥有for-each 语法
  */
 public interface Iterable<T> {
     /**

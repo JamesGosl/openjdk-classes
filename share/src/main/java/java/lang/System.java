@@ -963,6 +963,8 @@ public final class System {
      *        if a security manager exists and its <code>checkExit</code>
      *        method doesn't allow exit with the specified status.
      * @see        java.lang.Runtime#exit(int)
+     *
+     * 通过Runtime 关闭，在通过Shutdown 关闭
      */
     public static void exit(int status) {
         Runtime.getRuntime().exit(status);

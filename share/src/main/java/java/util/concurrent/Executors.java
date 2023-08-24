@@ -67,6 +67,8 @@ import sun.security.util.SecurityConstants;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * Executors 是一个静态工厂类，内部有一些可以快捷创建线程池的静态工厂方法。
  */
 public class Executors {
 
@@ -84,6 +86,9 @@ public class Executors {
      * @param nThreads the number of threads in the pool
      * @return the newly created thread pool
      * @throws IllegalArgumentException if {@code nThreads <= 0}
+     *
+     *
+     * 固定大小的线程池
      */
     public static ExecutorService newFixedThreadPool(int nThreads) {
         return new ThreadPoolExecutor(nThreads, nThreads,
@@ -166,6 +171,8 @@ public class Executors {
      * guaranteed not to be reconfigurable to use additional threads.
      *
      * @return the newly created single-threaded Executor
+     *
+     * 只有一个线程的线程池
      */
     public static ExecutorService newSingleThreadExecutor() {
         return new FinalizableDelegatedExecutorService
@@ -211,6 +218,8 @@ public class Executors {
      * may be created using {@link ThreadPoolExecutor} constructors.
      *
      * @return the newly created thread pool
+     *
+     * 不限制线程数量的线程池，任何提交的任务都将立即执行，但是空闲线程会得到及时回收
      */
     public static ExecutorService newCachedThreadPool() {
         return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
@@ -280,6 +289,8 @@ public class Executors {
      * even if they are idle
      * @return a newly created scheduled thread pool
      * @throws IllegalArgumentException if {@code corePoolSize < 0}
+     *
+     * ScheduledThreadPoolExecutor 可延时和周期性任务的线程池
      */
     public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize) {
         return new ScheduledThreadPoolExecutor(corePoolSize);

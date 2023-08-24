@@ -136,6 +136,61 @@ import sun.security.util.SecurityConstants;
  * @see     #run()
  * @see     #stop()
  * @since   JDK1.0
+ *
+ * 进程的基本原理
+ *  在计算机中，CPU 是核心的硬件资源，承担了所有的计算任务；内存资源承担了运行时数据的保存任务；外部资源承担了数据外部永久存储的任务。其中，计算任务
+ *  的调度、资源的分配由操作系统来统领。应用程序以进程的形式运行在操作系统之上，享受操作系统提供的服务。
+ *  进程的定义一直以来没有完美的标准。一般来说，一个进程由程序段、数据段和进程控制块三部分组成。
+ *      程序段一般也称代码段。代码段是进程的程序指令在内存中的位置，包含需要执行的指令集合；
+ *      数据段是进程操作的数据 在内存中的位置，包含需要操作的数据集合；
+ *      程序控制块包含进程的描述信息和控制信息，是进程存在的唯一标识；
+ *  PCB 主要由四大部分组成：
+ *      （1）进程的描述信息。主要包括：进程的ID 和进程的名称，进程ID 是唯一的，代表进程的身份；进程的状态，比如运行、就绪、阻塞；进程的优先级，是
+ *      进程调度的重要依据。
+ *      （2）进程的调度信息。主要包括：程序的起始地址，程序的第一行指令的内存地址，从这里开始程序的执行；通信信息，进程间通信时的消息队列。
+ *      （3）进程的资源信息。主要包括：内存信息，内存占用情况和内存管理所用的数据结构；I/O 设备信息，所有的I/O 设备编号及相应数据结构；文件句柄，
+ *      所打开文件的信息。
+ *      （4）进程上下文。主要包括：执行时各种CPU 寄存器的值、当前的程序计数器（PC）的值以及各种栈的值等，即进程的环境。在操作系统切换进程时，当前
+ *      进程被迫让出CPU，当前进程的上下文就保存在PCB 结构中，供下次恢复运行时使用。
+ *  现代操作系统中，进程是并发执行的，任何进程都可以同其他进程一起进行。在进程内部，代码段和数据段有自己的独立地址空间，不同进程的地址空间是相互隔离的。
+ *
+ * 线程的基本原理
+ *  早期的操作系统只有进程而没有线程。进程是程序执行和系统进行并发调度的最小单位。随着计算机的发展，CPU 的性能越来越高，从早期的20MHz 发展到现在2GHz
+ *  以上，从单核CPU 发展到了多核CPU，性能提升了成千上万倍。为了发挥CPU 的计算性能，提升CPU 的硬件资源的利用率，同时弥补进程调度过于笨重产生的问题，
+ *  进程内部演进出了并发调度的诉求，于是发明了线程。
+ *  线程是指”进程代码段“的一次顺序执行流程。线程是CPU 调度的最小单位。一个进程可以有一个或多个线程，各个线程之间共享进程的内存空间、系统资源，进程仍
+ *  是操作系统资源分配的最小单位。
+ *  Java 程序的进程执行过程就是一个标准的多线程的执行过程。每当使用Java 命令执行一个Class 类时，实际上就是启动了一个JVM 进程。理论上，在该进程的
+ *  内部至少会启动两个线程，一个Main 线程，另一个是GC 线程。实际上，执行一个Java 程序后，线程数量远远不止两个，达到了18个之多。可以通过Windows
+ *  工具Process Explorer 来观察。
+ *  一个标准的线程主要由三部分组成，线程描述信息、程序计数器和栈内存。
+ *      线程描述信息即线程的基本信息，主要包括：
+ *      （1）线程ID。线程的唯一标识，同一个进程内不同的线程ID 不会重复。
+ *      （2）线程名称。主要是方便用户识别，用户可以指定线程的名字，如果没有指定，系统就会自动分配一个名称。
+ *      （3）线程优先级。表示线程调度的优先级，优先级越高，获得CPU 的执行机会就越大。
+ *      （4）线程状态。表示当前线程的执行状态，在系统级别只有四种新建、就绪、运行、终止。
+ *      程序计数器很重要，它记录着线程下一条指令的代码段内存地址。
+ *      栈内存是代码段中局部变量的存储空间，为线程所独立拥有，在线程之间不共享。
+ *  在Java 中，执行程序流程的重要单位是“方法”，而栈内存的分配单位是“栈帧”。方法的每一次执行都需要为其分配一个栈帧，主要包括该方法中的局部变量、方法
+ *  的返回地址以及其他方法的相关信息。当线程的执行流程进入方法时，JVM 就会为方法分配一个对应的栈帧压入栈内存；当线程执行流程跳出方法时，JVM 就从栈
+ *  内存中弹出该方法的栈帧，此时方法栈帧的内存就会被回收，栈帧中的变量就会被销毁。
+ *
+ * 进程与线程的区别
+ *  线程的上下文切换要比进程的上下文切换速度快的多，所以这也就是为什么要引入线程的原因。
+ *  进程可以看做是Java 中的线程池，而线程可以看做是Java 中线程池的线程。
+ *  线程是CPU 调度的最小单位，进程是操作系统分配资源的最小单位。
+ *
+ * 线程的调度方式是：基于CPU 时间片方式进程线程调度。线程只有得到CPU 时间片才能执行指令，处于执行状态，没有得到时间片的线程处于就绪状态，等待线程分
+ * 配下一个CPU 时间片。由于时间片非常短，在各个线程之间快速的切换，因此表现出来的特征是很多个线程在“同时执行” 或者“并发执行”。
+ * 线程的调度模型有两种：分时调度模型和抢占式调度模型。
+ * （1）分时调度模型：系统平均分配CPU 的时间片，所有线程轮流占用CPU。分时调度模型在时间片调度的分配上，所有线程”人人均等“。
+ * （2）抢占式调度模型：系统按照线程优先级分配CPU 时间片。优先级越高的线程，优先分配CPU 时间片，如果所有就绪线程的优先级相同，那么会随机选一个，优
+ * 先级高的线程获得的CPU 时间片相对多一些。
+ *
+ * 由于目前大部分操作系统都是使用抢占式调度模型进行线程调度，Java 的线程管理和调度是委托给操作系统完成的，与之相应的，Java 的线程调度也是使用抢占式
+ * 调度模型，因此Java 的线程都有优先级。
+ *
+ *
  */
 public
 class Thread implements Runnable {
@@ -178,7 +233,9 @@ class Thread implements Runnable {
     }
 
     /* ThreadLocal values pertaining to this thread. This map is maintained
-     * by the ThreadLocal class. */
+     * by the ThreadLocal class.
+     *
+     * ThreadLocal 的关键 */
     ThreadLocal.ThreadLocalMap threadLocals = null;
 
     /*
@@ -229,6 +286,8 @@ class Thread implements Runnable {
     /* The object in which this thread is blocked in an interruptible I/O
      * operation, if any.  The blocker's interrupt method should be invoked
      * after setting this thread's interrupt status.
+     *
+     * 可中断
      */
     private volatile Interruptible blocker;
     private final Object blockerLock = new Object();
@@ -240,6 +299,10 @@ class Thread implements Runnable {
             blocker = b;
         }
     }
+
+    // Java 中使用抢占式模型进行线程调度。优先级越高，线程获得CPU 时间片的机会越多，但也是不是绝对的。线程的优先级是一个用于提示操作系统调度器的指
+    // 示，告诉操作系统线程的相对重要性，让操作系统在调度时倾向于优先执行高优先级的线程。然而，操作系统在实际调度中可能会受到多种因素的影响，包括不同
+    // 操作系统的调度策略、硬件资源的可用性等。
 
     /**
      * The minimum priority that a thread can have.
@@ -278,6 +341,13 @@ class Thread implements Runnable {
      * bugs due to race conditions. It may also be useful when designing
      * concurrency control constructs such as the ones in the
      * {@link java.util.concurrent.locks} package.
+     *
+     * 此方法的作用是让目前正在执行的线程放弃当前的执行，让出CPU 的执行权限，使得CPU 去执行其他的线程。处于让步状态的JVM 层面的线程状态让然是
+     * RUNNABLE 状态，到那时该线程所对应的操作系统层面的线程上来说会从执行状态变为就绪状态。线程在yield 时，线程放弃和重占CPU 的时间是不确定的，
+     * 可能是刚刚放弃CPU，马上又获得CPU 执行权限，重新开始之心。
+     *
+     * yield 方法是Thread 类提供的一个静态方法，它可以让当前正在执行的线程暂停，但它不会阻塞该线程，只是让线程转入就绪状态。yield 方法只是让线程
+     * 暂停一下，让系统的线程调度器重新调度一次，说白了就是让出CPU 时间片。
      */
     public static native void yield();
 
@@ -297,6 +367,8 @@ class Thread implements Runnable {
      *          if any thread has interrupted the current thread. The
      *          <i>interrupted status</i> of the current thread is
      *          cleared when this exception is thrown.
+     *
+     * sleep 的作用是让目前正在执行的线程休眠，让CPU 去执行其他的任务。从线程状态来说，就是从RUNNABLE 变成TIMED_WAITING 状态。
      */
     public static native void sleep(long millis) throws InterruptedException;
 
@@ -829,6 +901,12 @@ class Thread implements Runnable {
      *       For more information, see
      *       <a href="{@docRoot}/../technotes/guides/concurrency/threadPrimitiveDeprecation.html">Why
      *       are Thread.stop, Thread.suspend and Thread.resume Deprecated?</a>.
+     *
+     * Java 虽然提供了stop 方法，但是这是非常不合理的，因为很危险，就像突然关闭计算机电源，而不是按照正常程序关机。
+     * 就像你尿尿正爽呢，有人一把抓住你 不让你尿了。
+     *
+     * 在程序中，我们是不能随便中断一个线程的，我们无法知道这个线程正在干什么，它可能持有某把锁，强行中断线程可能导致锁不能释放等问题；或者线程可能
+     * 在操作数据库，强行中断线程可能导致数据不一致的问题。正是由于使用stop 方法来终止线程可能会产生不可预料的结果，因此并不推荐调用stop 方法。
      */
     @Deprecated
     public final void stop() {
@@ -906,6 +984,19 @@ class Thread implements Runnable {
      *
      * @revised 6.0
      * @spec JSR-51
+     *
+     * 正确关闭线程应该是使用interrupt 方法，此方法本质不是用来中断一个线程，而是将线程设置为中断状态。
+     * 当我们调用interrupt 方法时，它有两个作用：
+     * （1）如果此线程处于阻塞状态，就会立马退出阻塞，并抛出InterruptedException 异常，线程就可以通过捕获InterruptedException 来做一定的处
+     * 理，然后让线程退出。更确切的说，如果线程被Object#wait、Thread#join、Thread#sleep 阻塞，此时调用该线程的interrupt 方法，该线程将抛出
+     * 一个InterruptedException 中断异常。
+     * （2）如果此线程处于运行状态，线程就不会受任何影响，继续运行，仅仅是线程的中断标记被设置为true。所以，程序可以在适当的位置通过调用isInterrupted
+     * 方法来查看自己是否被中断，并执行退出操作。
+     *
+     * 自定义中断标识位和使用interrupt 的区别：
+     * （1）interrupt 更加优雅。
+     * （2）interrupt 可以解阻塞，会抛出异常（会清除中断标识位，所以要在catch 中使用interrupt 恢复中断标识位）。
+     *
      */
     public void interrupt() {
         if (this != Thread.currentThread())
@@ -1115,6 +1206,10 @@ class Thread implements Runnable {
      *               thread.
      * @see        #getName
      * @see        #checkAccess()
+     *
+     * 线程名称一般在启动线程前设置，但也允许为运行的线程设置名称。
+     * 允许两个Thread 对象有相同的名称，但是应该避免。
+     * 如果程序没有为线程指定名称，系统会自动为线程设置名称。（在构造方法中有具体的体现）
      */
     public final synchronized void setName(String name) {
         checkAccess();
@@ -1229,6 +1324,8 @@ class Thread implements Runnable {
      *          if any thread has interrupted the current thread. The
      *          <i>interrupted status</i> of the current thread is
      *          cleared when this exception is thrown.
+     *
+     * 此方法会把当前线程变为TIMED_WAITING 状态，直到合并线程执行完毕，或者等待时间超时。
      */
     public final synchronized void join(long millis)
     throws InterruptedException {
@@ -1279,6 +1376,8 @@ class Thread implements Runnable {
      *          if any thread has interrupted the current thread. The
      *          <i>interrupted status</i> of the current thread is
      *          cleared when this exception is thrown.
+     *
+     * 此方法会把当前线程变为TIMED_WAITING 状态，直到合并线程执行完毕，或者等待时间超时。
      */
     public final synchronized void join(long millis, int nanos)
     throws InterruptedException {
@@ -1313,6 +1412,12 @@ class Thread implements Runnable {
      *          if any thread has interrupted the current thread. The
      *          <i>interrupted status</i> of the current thread is
      *          cleared when this exception is thrown.
+     *
+     * 线程的合并是一个比较难以说清楚的概念，什么是线程的合并呢？举一个例子：假设有两个线程A 和B，现在线程A 在执行过程中对另一个线程B 的执行由依赖，
+     * 具体的依赖为：线程A 需要线程B 的执行流程合并到自己的执行流程中，这就是线程合并，被动方线程B 可以叫做被合并线程，也就是线程A 会等待线程B 执行
+     * 完成后，才会继续执行。
+     *
+     * 此方法会把当前线程变为WAITING，直到合并线程执行完毕。
      */
     public final void join() throws InterruptedException {
         join(0);
@@ -1344,6 +1449,11 @@ class Thread implements Runnable {
      * @throws  SecurityException
      *          if {@link #checkAccess} determines that the current
      *          thread cannot modify this thread
+     *
+     * （1）守护线程必须在启动前将其守护状态设置为true，启动之后不能再为用户线程设置守护线程，否则会抛出一个IllegalThreadStateException 异常。
+     * （2）守护线程存在被JVM 强制终止的风险，所以在守护线程中尽量不去访问系统的资源，如文件句柄、数据库连接等。守护线程被强制终止时，可能会引发系统
+     * 资源操作不负责任的中断，从而导致资源不可逆的损坏。
+     * （3）守护线程创建的线程也是守护线程。（在构造方法中有所体现）
      */
     public final void setDaemon(boolean on) {
         checkAccess();
@@ -1359,6 +1469,17 @@ class Thread implements Runnable {
      * @return  <code>true</code> if this thread is a daemon thread;
      *          <code>false</code> otherwise.
      * @see     #setDaemon(boolean)
+     *
+     * Java 中的线程分为两类：守护线程和用户线程。守护线程也称后台线程，专门指在程序进程运行过程中，在后台提供某种通用服务的线程。比如，每启动一个
+     * JVM 进程，都会在后台运行着一系列的GC 线程，这些GC 线程就是守护线程，提供幕后的垃圾回收服务。
+     *
+     * 守护线程与用户线程的关系
+     * 从是否为守护线程的角度，对Java 线程进行分类，分为用户线程和守护线程。守护线程和用户线程的本质区别是：二者与JVM 虚拟机进程终止的方向不同。用
+     * 户线程和JVM 进程是主动关系，如果用户线程全部终止，JVM 虚拟机进程也随之终止；守护线程和JVM 进程是被动关系，如果JVM 进程终止，所有的守护线程
+     * 也随之终止。
+     * 换个角度来理解，守护线程提供服务，是守护者，用户线程享受服务，是被守护者。只有全部是用户线程终止了，相当于没有了被守护者，守护线程也就没有工作
+     * 可做了，也就可以全部终止了。当然，用户线程全部终止，JVM 进程也就没有继续的必要了。反过来说，只要有一个用户线程没有终止，JVM 进程就不会退出。
+     * 但是在终止维度上，守护线程和JVM 进程没有主动关系。也就是说，哪怕是守护线程全部被终止，JVM 虚拟机也不一定终止。
      */
     public final boolean isDaemon() {
         return daemon;
@@ -1730,10 +1851,16 @@ class Thread implements Runnable {
      *
      * @since   1.5
      * @see #getState
+     *
+     * 在操作系统上的线程只有四种状态：新建、就绪、运行、终止。
+     * Java 线程的六种状态：新建、运行、阻塞、等待、超时等待、终止。
+     * 其中Java 线程中的运行状态包含了操作系统线程的就绪和运行两种状态，其他三种状态则是Java 线程的本地策略。
+     *
      */
     public enum State {
         /**
          * Thread state for a thread which has not yet started.
+         * 线程的状态是 还未启动，也就是还没有调用start()
          */
         NEW,
 
@@ -1742,6 +1869,12 @@ class Thread implements Runnable {
          * state is executing in the Java virtual machine but it may
          * be waiting for other resources from the operating system
          * such as processor.
+         *
+         * JVM 的幕后工作和操作系统的线程调度有关。Java 中的线程管理是通过JNI 本地调用的方式，委托给操作系统的线程管理API 完成的。当Java 线程
+         * 的Thread 实例的start() 方法被调用后，操作系统中的对应线程进入的并不是运行状态，而是就绪状态，在Java 语言职工，没有细分这两种状态，而
+         * 是将这两种状态合并成一种状态RUNNABLE。
+         *
+         * 就是说站在Java 的角度来看，一旦启动了就是操作系统后面的事情了，跟Java 平台无关了，所以就是RUNNABLE 状态。
          */
         RUNNABLE,
 
@@ -1751,6 +1884,8 @@ class Thread implements Runnable {
          * to enter a synchronized block/method or
          * reenter a synchronized block/method after calling
          * {@link Object#wait() Object.wait}.
+         *
+         * synchronized monitor lock
          */
         BLOCKED,
 
@@ -1772,6 +1907,9 @@ class Thread implements Runnable {
          * <tt>Object.notify()</tt> or <tt>Object.notifyAll()</tt> on
          * that object. A thread that has called <tt>Thread.join()</tt>
          * is waiting for a specified thread to terminate.
+         *
+         * Object#wait() / Thread#join() / LockSupport#park()
+         * Object#notify()/notifyAll()   / LockSupport#unpark();
          */
         WAITING,
 
@@ -1786,12 +1924,16 @@ class Thread implements Runnable {
          *   <li>{@link LockSupport#parkNanos LockSupport.parkNanos}</li>
          *   <li>{@link LockSupport#parkUntil LockSupport.parkUntil}</li>
          * </ul>
+         *
+         * Thread#sleep / Object#wait / Thread#join / LockSupport#parkNanos/parUntil
          */
         TIMED_WAITING,
 
         /**
          * Thread state for a terminated thread.
          * The thread has completed execution.
+         *
+         * 线程被终止的一个状态，这个是和操作系统对应的
          */
         TERMINATED;
     }

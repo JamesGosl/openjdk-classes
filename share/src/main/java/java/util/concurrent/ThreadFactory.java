@@ -54,6 +54,8 @@ package java.util.concurrent;
  * to known values before returning it.
  * @since 1.5
  * @author Doug Lea
+ *
+ * 线程池 线程工厂
  */
 public interface ThreadFactory {
 

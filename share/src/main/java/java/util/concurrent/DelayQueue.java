@@ -66,6 +66,9 @@ import java.util.*;
  * @since 1.5
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
+ *
+ * DelayQueue 是一个无界队列，底层基于PriorityQueue 实现，队列中每个元素都有过期时间，当从队列获取元素（元素出队）时，只有已经过期的元素才会出队，
+ *           而队列头部的元素是最先过期的元素。
  */
 public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     implements BlockingQueue<E> {

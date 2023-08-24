@@ -67,6 +67,8 @@ import java.util.*;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * 为ExecutorService 接口提供默认实现
  */
 public abstract class AbstractExecutorService implements ExecutorService {
 

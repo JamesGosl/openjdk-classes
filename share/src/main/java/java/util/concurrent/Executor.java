@@ -124,6 +124,9 @@ package java.util.concurrent;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * Executor 是Java 异步目标任务的 “执行者” 接口，其目的是来执行目标任务。
+ * Executor 作为执行者的角色，其目的是 ”任务提交者“ 与 ”任务执行者“ 分离开来的机制。
  */
 public interface Executor {
 
@@ -136,6 +139,8 @@ public interface Executor {
      * @throws RejectedExecutionException if this task cannot be
      * accepted for execution
      * @throws NullPointerException if command is null
+     *
+     * 执行任务
      */
     void execute(Runnable command);
 }

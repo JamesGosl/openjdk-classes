@@ -40,6 +40,8 @@ package java.util.concurrent;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * 线程池 拒绝任务处理器
  */
 public interface RejectedExecutionHandler {
 

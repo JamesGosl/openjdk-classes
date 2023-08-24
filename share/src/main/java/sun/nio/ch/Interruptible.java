@@ -29,6 +29,9 @@
 
 package sun.nio.ch;
 
+/**
+ * 可中断
+ */
 public interface Interruptible {
 
     public void interrupt(Thread t);

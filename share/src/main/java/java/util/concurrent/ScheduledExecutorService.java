@@ -90,6 +90,8 @@ package java.util.concurrent;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * ScheduledExecutorService 在ExecutorService 的基础上增加了 “延时” 和 “周期性” 任务的功能，类似和Timer/TimerTask 类似。
  */
 public interface ScheduledExecutorService extends ExecutorService {
 

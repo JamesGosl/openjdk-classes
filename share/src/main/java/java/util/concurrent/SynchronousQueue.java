@@ -80,6 +80,9 @@ import java.util.Spliterators;
  * @since 1.5
  * @author Doug Lea and Bill Scherer and Michael Scott
  * @param <E> the type of elements held in this collection
+ *
+ * SynchronousQueue 是一个不存储元素的阻塞队列，每个插入操作必须等到另一个线程的调用移除操作，否则插入操作一直处于阻塞状态，其吞吐量通常高于
+ *           LinkedBlockingQueue。
  */
 public class SynchronousQueue<E> extends AbstractQueue<E>
     implements BlockingQueue<E>, java.io.Serializable {
